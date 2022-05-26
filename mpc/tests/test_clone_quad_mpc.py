@@ -88,7 +88,7 @@ def define_quad_mpc_expert():
     return mpc_expert
 
 
-def clone_quad_mpc(save_path, hidden_layers=2, hidden_layer_width=32, lambd=1, train=True, data_path=None):
+def clone_quad_mpc(save_path, hidden_layers=2, hidden_layer_width=32, lambd=1, train=True, data_path=None, load_from_file=None):
     # -------------------------------------------
     # Clone the MPC policy
     # -------------------------------------------
@@ -100,14 +100,15 @@ def clone_quad_mpc(save_path, hidden_layers=2, hidden_layer_width=32, lambd=1, t
         hidden_layer_width,
         n_states,
         n_controls,
-        state_space#,
-        #load_from_file="mpc/tests/data/cloned_quad_policy.pth",
+        state_space,
+        load_from_file=load_from_file,
     )
 
     n_pts = int(1e5)
     n_epochs = 50
     learning_rate = 1e-3
     if train:
+        print("Using ", lambd, " weight on regularization loss")
         cloned_policy.clone(
             mpc_expert,
             n_pts,
@@ -139,12 +140,16 @@ def simulate_and_plot(policy):
     # -------------------------------------------
     # Plot a rollout of the cloned
     # -------------------------------------------
-    ys = np.linspace(-0.5, 0.5, 8)
-    xs = np.linspace(-1.0, -0.3, 8)
+    ys = np.linspace(-0.5, 0.5, 3)
+    xs = np.linspace(-1.0, -0.3, 3)
+    vxs = np.linspace(-0.5, 0.5, 3)
+    vys = np.linspace(-0.5, 0.5, 3)
     x0s = []
     for y in ys:
         for x in xs:
-            x0s.append(np.array([x, y, 0.0, 0.0, 0.0, 0.0]))
+            for vx in vxs:
+                for vy in vys:
+                    x0s.append(np.array([x, y, 0.0, vx, vy, 0.0]))
 
     fig = plt.figure(figsize=plt.figaspect(1.0))
     ax_xy = fig.add_subplot(1, 2, 1)
@@ -162,7 +167,7 @@ def simulate_and_plot(policy):
         )
 
         # Plot it (in x-y plane)
-        # ax_xy.plot(x0[0], x0[1], "ro")
+        ax_xy.plot(x0[0], x0[1], "ro")
         ax_xy.plot(x[:, 0], x[:, 1], "r-", linewidth=1)
         # and in (x-z plane)
         # ax_xz.plot(x0[0], x0[2], "ro")
@@ -194,12 +199,11 @@ def simulate_and_plot(policy):
 
     ax_xz.legend()
 
-    plt.savefig('test.png')
+    plt.savefig('nn_policy.png')
 
-def save_to_onnx(policy):
+def save_to_onnx(policy, save_path):
     """Save to an onnx file"""
-    save_path = "mpc/tests/data/cloned_quad_policy_v2.onnx"
-    pytorch_to_nnet(policy, n_states, n_controls, save_path)
+    pytorch_to_nnet(policy, policy.n_state_dims, policy.n_control_dims, save_path)
 
     input_mins = [state_range[0] for state_range in state_space]
     input_maxes = [state_range[1] for state_range in state_space]
@@ -212,6 +216,9 @@ def save_to_onnx(policy):
 
 if __name__ == "__main__":
     # generate_quad_data(100, 'mpc/tests/data/quad_small')
-    policy = clone_quad_mpc('mpc/tests/data/quad_model_small_data.pt', lambd=1e-5, train=True, data_path='mpc/tests/data/quad_small')
-    # save_to_onnx(policy)
+    model_save_path = "mpc/tests/data/cloned_quad_policy_regularized"
+    # model_load_path = "mpc/tests/data/cloned_quad_policy_regularized_lamb1e-9.pth"
+    policy = clone_quad_mpc(model_save_path+'.pth', lambd=1e-6, train=True, data_path='mpc/tests/data/quad_mpc_data') #, load_from_file=model_load_path)
+    save_to_onnx(policy, model_save_path+".onnx")
+    # save_to_onnx(policy, model_load_path[:-4]+".onnx")
     simulate_and_plot(policy)

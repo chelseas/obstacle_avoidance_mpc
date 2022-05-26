@@ -81,12 +81,16 @@ def test_quad_mpc(x0: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
 
 
 def run_and_plot_quad_mpc():
-    ys = np.linspace(-0.5, 0.5, 8)
-    xs = np.linspace(-1.0, -0.3, 8)
+    ys = np.linspace(-0.5, 0.5, 2)
+    xs = np.linspace(-1.0, -0.3, 2)
+    vxs = np.linspace(-0.5, 0.5, 2)
+    vys = np.linspace(-0.5, 0.5, 2)
     x0s = []
     for y in ys:
         for x in xs:
-            x0s.append(np.array([x, y, 0.0, 0.0, 0.0, 0.0]))
+            for vx in vxs:
+                for vy in vys:
+                    x0s.append(np.array([x, y, 0.0, vx, vy, 0.0]))
 
     fig = plt.figure(figsize=plt.figaspect(1.0))
     ax_xy = fig.add_subplot(1, 2, 1)
@@ -98,8 +102,8 @@ def run_and_plot_quad_mpc():
         _, x, u = test_quad_mpc(x0)
 
         # Plot it (in x-y plane)
-        # ax_xy.plot(x0[0], x0[1], "ro")
-        ax_xy.plot(x[:, 0], x[:, 1], "r-", linewidth=1)
+        ax_xy.plot(x0[0], x0[1], "ro")
+        ax_xy.plot(x[:, 0], x[:, 1], "r-", linewidth=1) #, label="vx0:"+str(x[0,3])+", vy0:"+str(x[0,4]))
         # and in (x-z plane)
         # ax_xz.plot(x0[0], x0[2], "ro")
         ax_xz.plot(x[:, 0], x[:, 2], "r-", linewidth=1)
@@ -128,6 +132,7 @@ def run_and_plot_quad_mpc():
     ax_xy.set_aspect("equal")
     ax_xz.set_aspect("equal")
 
+    # ax_xy.legend()
     ax_xz.legend()
 
     plt.show()

@@ -180,7 +180,7 @@ class PolicyCloningModel(torch.nn.Module):
 
                 loss_accumulated += loss.detach()
 
-            print(f"Epoch {epoch}: {loss_accumulated / (n_pts / batch_size)}")
+            print(f"Epoch {epoch}: loss: {loss_accumulated / (n_pts / batch_size)}, L1 norm of weights: {l1_norm}")
 
         if save_path is not None:
             self.save_to_file(save_path)
