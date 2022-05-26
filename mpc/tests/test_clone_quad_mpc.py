@@ -1,4 +1,8 @@
 """Test the obstacle avoidance MPC for a quadrotor"""
+
+import sys
+sys.path.append('/home/smkatz/Documents/obstacle_avoidance_mpc/')
+
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
@@ -12,7 +16,7 @@ from mpc.costs import (
 from mpc.dynamics_constraints import quad6d_dynamics
 from mpc.mpc import construct_MPC_problem, solve_MPC_problem
 from mpc.obstacle_constraints import hypersphere_sdf
-from mpc.simulator import simulate_nn
+from mpc.simulator import simulate_nn, simulate_mpc
 from mpc.network_utils import pytorch_to_nnet
 
 from mpc.nn import PolicyCloningModel
@@ -22,8 +26,8 @@ radius = 0.2
 margin = 0.1
 center = [0.0, 1e-5, 0.0]
 n_states = 6
-n_controls = 3
 horizon = 20
+n_controls = 3
 dt = 0.1
 dynamics_fn = quad6d_dynamics
 
@@ -84,20 +88,20 @@ def define_quad_mpc_expert():
     return mpc_expert
 
 
-def clone_quad_mpc(train=True):
+def clone_quad_mpc(save_path, hidden_layers=2, hidden_layer_width=32, lambd=1, train=True, data_path=None):
     # -------------------------------------------
     # Clone the MPC policy
     # -------------------------------------------
     mpc_expert = define_quad_mpc_expert()
-    hidden_layers = 2
-    hidden_layer_width = 32
+    # hidden_layers = 2
+    # hidden_layer_width = 32
     cloned_policy = PolicyCloningModel(
         hidden_layers,
         hidden_layer_width,
         n_states,
         n_controls,
-        state_space,
-        load_from_file="mpc/tests/data/cloned_quad_policy.pth",
+        state_space#,
+        #load_from_file="mpc/tests/data/cloned_quad_policy.pth",
     )
 
     n_pts = int(1e5)
@@ -109,11 +113,27 @@ def clone_quad_mpc(train=True):
             n_pts,
             n_epochs,
             learning_rate,
-            save_path="mpc/tests/data/cloned_quad_policy.pth",
+            save_path=save_path,
+            data_path=data_path,
+            lambd=lambd
         )
 
     return cloned_policy
 
+def generate_quad_data(npts, save_file):
+    mpc_expert = define_quad_mpc_expert()
+    hidden_layers = 2
+    hidden_layer_width = 32
+    cloned_policy = PolicyCloningModel(
+        hidden_layers,
+        hidden_layer_width,
+        n_states,
+        n_controls,
+        state_space  # ,
+        #load_from_file="mpc/tests/data/cloned_quad_policy.pth",
+    )
+
+    cloned_policy.gen_training_data(mpc_expert, npts, save_file)
 
 def simulate_and_plot(policy):
     # -------------------------------------------
@@ -174,12 +194,11 @@ def simulate_and_plot(policy):
 
     ax_xz.legend()
 
-    plt.show()
-
+    plt.savefig('test.png')
 
 def save_to_onnx(policy):
     """Save to an onnx file"""
-    save_path = "mpc/tests/data/cloned_quad_policy.onnx"
+    save_path = "mpc/tests/data/cloned_quad_policy_v2.onnx"
     pytorch_to_nnet(policy, n_states, n_controls, save_path)
 
     input_mins = [state_range[0] for state_range in state_space]
@@ -192,6 +211,7 @@ def save_to_onnx(policy):
 
 
 if __name__ == "__main__":
-    policy = clone_quad_mpc(train=False)
-    save_to_onnx(policy)
+    # generate_quad_data(100, 'mpc/tests/data/quad_small')
+    policy = clone_quad_mpc('mpc/tests/data/quad_model_small_data.pt', lambd=1e-5, train=True, data_path='mpc/tests/data/quad_small')
+    # save_to_onnx(policy)
     simulate_and_plot(policy)

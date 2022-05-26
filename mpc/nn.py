@@ -87,26 +87,11 @@ class PolicyCloningModel(torch.nn.Module):
         }
         torch.save(save_data, save_path)
 
-    def clone(
-        self,
-        expert: Callable[[torch.Tensor], torch.Tensor],
-        n_pts: int,
-        n_epochs: int,
-        learning_rate: float,
-        batch_size: int = 64,
-        save_path: Optional[str] = None,
-    ):
-        """Clone the provided expert policy. Uses dead-simple supervised regression
-        to clone the policy (no DAgger currently).
-
-        args:
-            expert: the policy to clone
-            n_pts: the number of points in the cloning dataset
-            n_epochs: the number of epochs to train for
-            learning_rate: step size
-            batch_size: size of mini-batches
-            save_path: path to save the file (if none, will not save the model)
-        """
+    def gen_training_data(self,
+                          expert: Callable[[torch.Tensor], torch.Tensor],
+                          n_pts: int,
+                          save_path: str):
+        
         # Generate some training data
         # Start by sampling points uniformly from the state space
         x_train = torch.zeros((n_pts, self.n_state_dims))
@@ -119,6 +104,52 @@ class PolicyCloningModel(torch.nn.Module):
         data_gen_range.set_description("Generating training data...")
         for i in data_gen_range:
             u_expert[i, :] = expert(x_train[i, :])
+
+        # Save it to a file
+        torch.save(x_train, save_path + '_examples.pt')
+        torch.save(u_expert, save_path + '_labels.pt')
+
+
+    def clone(
+        self,
+        expert: Callable[[torch.Tensor], torch.Tensor],
+        n_pts: int,
+        n_epochs: int,
+        learning_rate: float,
+        lambd: float = 1,
+        batch_size: int = 64,
+        save_path: Optional[str] = None,
+        data_path: Optional[str] = None,
+    ):
+        """Clone the provided expert policy. Uses dead-simple supervised regression
+        to clone the policy (no DAgger currently).
+
+        args:
+            expert: the policy to clone
+            n_pts: the number of points in the cloning dataset
+            n_epochs: the number of epochs to train for
+            learning_rate: step size
+            batch_size: size of mini-batches
+            save_path: path to save the file (if none, will not save the model)
+        """
+
+        if data_path is not None:
+            x_train = torch.load(data_path + '_examples.pt')
+            u_expert = torch.load(data_path + '_labels.pt')
+            n_pts = x_train.shape[0]
+        else:
+            # Generate some training data
+            # Start by sampling points uniformly from the state space
+            x_train = torch.zeros((n_pts, self.n_state_dims))
+            for dim in range(self.n_state_dims):
+                x_train[:, dim] = torch.Tensor(n_pts).uniform_(*self.state_space[dim])
+
+            # Now get the expert's control input at each of those points
+            u_expert = torch.zeros((n_pts, self.n_control_dims))
+            data_gen_range = tqdm(range(n_pts))
+            data_gen_range.set_description("Generating training data...")
+            for i in data_gen_range:
+                u_expert[i, :] = expert(x_train[i, :])
 
         # Make a loss function and optimizer
         mse_loss_fn = torch.nn.MSELoss(reduction="mean")
@@ -140,7 +171,9 @@ class PolicyCloningModel(torch.nn.Module):
                 u_predicted = self(x_batch)
 
                 # Compute the loss and backpropagate
-                loss = mse_loss_fn(u_predicted, u_expert_batch)
+                l1_norm = sum(p.abs().sum()
+                              for p in self.policy_nn.parameters())
+                loss = mse_loss_fn(u_predicted, u_expert_batch) + lambd * l1_norm
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
