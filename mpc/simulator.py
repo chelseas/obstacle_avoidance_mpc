@@ -4,6 +4,7 @@ from typing import Optional
 import casadi
 import numpy as np
 from tqdm import tqdm
+import time
 
 from mpc.dynamics_constraints import DynamicsFunction
 from mpc.mpc import solve_MPC_problem
@@ -137,9 +138,12 @@ def simulate_nn(
     # Simulate
     t_range = tqdm(range(n_steps - 1))
     t_range.set_description("Simulating")  # type: ignore
+    avg_nn_etime = 0
     for tstep in t_range:
         # Solve the MPC problem to get the next state
+        t1 = time.time()
         u_current = policy.eval_np(x[tstep])
+        avg_nn_etime += time.time() - t1 
         u[tstep] = u_current
 
         # Update the state using the dynamics. Integrate at a higher frequency using
@@ -151,5 +155,7 @@ def simulate_nn(
                 x_next[i] = x_next[i] + dt / substeps * np.array(dx_dt[i])
 
         x[tstep + 1] = x_next
+    avg_nn_etime /= len(t_range)
+    print("Avg NN execution time: (miliseconds) ", avg_nn_etime*1000)
 
     return t, x, u

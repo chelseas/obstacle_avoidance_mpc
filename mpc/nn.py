@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from tqdm import tqdm
+import time
 
 
 class PolicyCloningModel(torch.nn.Module):
@@ -102,8 +103,11 @@ class PolicyCloningModel(torch.nn.Module):
         u_expert = torch.zeros((n_pts, self.n_control_dims))
         data_gen_range = tqdm(range(n_pts))
         data_gen_range.set_description("Generating training data...")
+        t1 = time.time()
         for i in data_gen_range:
             u_expert[i, :] = expert(x_train[i, :])
+        mpc_time = (time.time() - t1)/len(data_gen_range)
+        print("\n Avg. execution time for MPC was: (milliseconds) ", mpc_time*1000)
 
         # Save it to a file
         torch.save(x_train, save_path + '_examples.pt')
@@ -148,8 +152,11 @@ class PolicyCloningModel(torch.nn.Module):
             u_expert = torch.zeros((n_pts, self.n_control_dims))
             data_gen_range = tqdm(range(n_pts))
             data_gen_range.set_description("Generating training data...")
+            t1 = time.time()
             for i in data_gen_range:
                 u_expert[i, :] = expert(x_train[i, :])
+            mpc_time = (time.time() - t1)/len(data_gen_range)
+            print("\n Avg. execution time for MPC was: (milliseconds) ", mpc_time*1000)
 
         # Make a loss function and optimizer
         mse_loss_fn = torch.nn.MSELoss(reduction="mean")

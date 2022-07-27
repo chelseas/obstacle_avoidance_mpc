@@ -6,6 +6,7 @@ sys.path.append('/home/smkatz/Documents/obstacle_avoidance_mpc/')
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
+import time
 
 from NNet.converters.onnx2nnet import onnx2nnet
 
@@ -88,7 +89,7 @@ def define_quad_mpc_expert():
     return mpc_expert
 
 
-def clone_quad_mpc(save_path, hidden_layers=2, hidden_layer_width=32, lambd=1, train=True, data_path=None, load_from_file=None):
+def clone_quad_mpc(save_path, hidden_layers=2, hidden_layer_width=32, lambd=1, train=True, data_path=None, load_from_file=None, epochs=50, n_pts=int(1e5)):
     # -------------------------------------------
     # Clone the MPC policy
     # -------------------------------------------
@@ -104,8 +105,8 @@ def clone_quad_mpc(save_path, hidden_layers=2, hidden_layer_width=32, lambd=1, t
         load_from_file=load_from_file,
     )
 
-    n_pts = int(1e5)
-    n_epochs = 50
+    # n_pts = int(1e5)
+    n_epochs = epochs
     learning_rate = 1e-3
     if train:
         print("Using ", lambd, " weight on regularization loss")
@@ -215,10 +216,8 @@ def save_to_onnx(policy, save_path):
 
 
 if __name__ == "__main__":
-    # generate_quad_data(100, 'mpc/tests/data/quad_small')
-    model_save_path = "mpc/tests/data/cloned_quad_policy_regularized"
-    # model_load_path = "mpc/tests/data/cloned_quad_policy_regularized_lamb1e-9.pth"
-    policy = clone_quad_mpc(model_save_path+'.pth', lambd=1e-6, train=True, data_path='mpc/tests/data/quad_mpc_data') #, load_from_file=model_load_path)
-    save_to_onnx(policy, model_save_path+".onnx")
-    # save_to_onnx(policy, model_load_path[:-4]+".onnx")
+    # generate_quad_data(100, 'mpc/tests/data/quad_small_TEST')
+    model_save_path = "mpc/tests/data/TIMETEST"
+    policy = clone_quad_mpc(model_save_path+'.pth', hidden_layer_width=12, hidden_layers=1, lambd=1e-7, train=True, epochs=10, n_pts=100) #, load_from_file=model_load_path) # data_path='mpc/tests/data/quad_mpc_data',
+    # save_to_onnx(policy, model_save_path+".onnx")
     simulate_and_plot(policy)

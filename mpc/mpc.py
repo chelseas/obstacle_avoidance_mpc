@@ -2,6 +2,7 @@
 from typing import Any, Dict, List, Tuple, Optional
 
 import casadi
+import time
 import numpy as np
 
 from mpc.costs import RunningCostFunction, TerminalCostFunction
@@ -77,7 +78,10 @@ def solve_MPC_problem(
     # Create a solver and solve!
     opti.solver("ipopt", p_opts, s_opts)
     try:
+        # t1 = time.time()
         solution = opti.solve()
+        # solve_time = time.time() - t1 
+        # print("Solve took ", solve_time, " seconds")
     except RuntimeError:
         return (
             False,
