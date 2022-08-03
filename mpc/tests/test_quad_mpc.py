@@ -15,9 +15,9 @@ from mpc.obstacle_constraints import hypersphere_sdf
 from mpc.simulator import simulate_mpc
 
 
-radius = 0.2
+radius = 1.0
 margin = 0.1
-center = [0.0, 1e-5, 0.0]
+center = [0.0, 0.0, 2.5] # @Charles why was y=1e-5 before??
 
 
 def test_quad_mpc(x0: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -37,7 +37,7 @@ def test_quad_mpc(x0: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     obstacle_fns = [(lambda x: hypersphere_sdf(x, radius, [0, 1, 2], center), margin)]
 
     # Define costs to make the quad go to the right
-    x_goal = np.array([1.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    x_goal = np.array([100.0, 0.0, 0.0, 0.0, 0.0, 0.0])
     goal_direction = np.array([1.0, 0.0, 0.0, 0.0, 0.0, 0.0])
     running_cost_fn = lambda x, u: lqr_running_cost(
         x, u, x_goal, dt * np.diag([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]), 1 * np.eye(3)
@@ -82,11 +82,11 @@ def test_quad_mpc(x0: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
 
 def run_and_plot_quad_mpc():
     ys = np.linspace(-0.5, 0.5, 8)
-    xs = np.linspace(-1.0, -0.3, 8)
+    xs = np.linspace(-5.0, -4.5, 8)
     x0s = []
     for y in ys:
         for x in xs:
-            x0s.append(np.array([x, y, 0.0, 0.0, 0.0, 0.0]))
+            x0s.append(np.array([x, y, 2.5, 0.0, 0.0, 0.0]))
 
     fig = plt.figure(figsize=plt.figaspect(1.0))
     ax_xy = fig.add_subplot(1, 2, 1)
@@ -117,12 +117,14 @@ def run_and_plot_quad_mpc():
 
     ax_xy.set_xlabel("x")
     ax_xy.set_ylabel("y")
+    plt.title("MPC")
     ax_xz.set_xlabel("x")
     ax_xz.set_ylabel("z")
+    plt.title("MPC")
 
-    ax_xy.set_xlim([-1.5, 1.5])
+    ax_xy.set_xlim([-5.5, 1.5])
     ax_xy.set_ylim([-1.0, 1.0])
-    ax_xz.set_xlim([-1.5, 1.5])
+    ax_xz.set_xlim([-5.5, 1.5])
     ax_xz.set_ylim([-1.0, 1.0])
 
     ax_xy.set_aspect("equal")

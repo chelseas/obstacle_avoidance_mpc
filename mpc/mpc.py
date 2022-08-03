@@ -105,6 +105,8 @@ def construct_MPC_problem(
     running_cost_fn: RunningCostFunction,
     terminal_cost_fn: TerminalCostFunction,
     control_bounds: List[float],
+    clip=[],
+    clip_lims=[]
 ) -> Tuple[casadi.Opti, casadi.MX, casadi.MX, casadi.MX, casadi.MX]:
     """
     Define a casadi Opti object containing a receding-horizon obstacle-avoidance MPC
@@ -159,7 +161,7 @@ def construct_MPC_problem(
 
     # Add dynamics constraints via direct transcription
     for t in range(horizon):
-        add_dynamics_constraints(opti, dynamics_fn, x[t, :], u[t, :], x[t + 1, :], dt)
+        add_dynamics_constraints(opti, dynamics_fn, x[t, :], u[t, :], x[t + 1, :], dt, clip=clip, clip_lims=clip_lims)
 
     # Return the MPC problem and the initial state and control variables
     return opti, x[0, :], u[0, :], x, u

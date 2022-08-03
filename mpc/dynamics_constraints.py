@@ -19,6 +19,8 @@ def add_dynamics_constraints(
     u_now: casadi.MX,
     x_next: casadi.MX,
     dt: float,
+    clip=[],
+    clip_lims=[]
 ):
     """Add constraints for the dynamics to the given optimization problem
 
@@ -30,15 +32,23 @@ def add_dynamics_constraints(
         u_now: current control input
         x_next: next state
         dt: timestep for Euler integration
+        clip: [True, False, True...] tells which dims to clip
+        clip_lims: ([L...],[U..])   max.(min.(x,U),L)
     """
     # Get the state derivative
     dx_dt = dynamics(x_now, u_now)
+    if clip == []: # if you don't want to clip
+        clip = [False]*x_now.shape[1]
+    else:
+        L, U = clip_lims
 
     # Add a constraint for each state variable
     for i in range(x_now.shape[1]):
         xi_next, xi_now, dxi_dt = x_next[i], x_now[i], dx_dt[i]
-        opti.subject_to(xi_next == xi_now + dt * dxi_dt)
-
+        if clip[i]:
+            opti.subject_to(xi_next == casadi_clip(xi_now + dt * dxi_dt, L[i], U[i]))
+        else:
+            opti.subject_to(xi_next == xi_now + dt * dxi_dt)
 
 def dubins_car_dynamics(x: Variable, u: Variable) -> List[Variable]:
     """
@@ -62,6 +72,8 @@ def dubins_car_dynamics(x: Variable, u: Variable) -> List[Variable]:
 
     return xdot
 
+def casadi_clip(v, L, U):
+    return casadi.fmax(casadi.fmin(U, v), L)
 
 def quad6d_dynamics(x: Variable, u: Variable):
     """

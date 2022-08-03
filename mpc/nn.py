@@ -36,6 +36,7 @@ class PolicyCloningModel(torch.nn.Module):
         # If a save file is provided, use the saved parameters
         saved_data: Dict[str, Any] = {}
         if load_from_file is not None:
+            print("Loading policy parameters from file.")
             saved_data = torch.load(load_from_file)
             self.hidden_layers = saved_data["hidden_layers"]
             self.hidden_layer_width = saved_data["hidden_layer_width"]
