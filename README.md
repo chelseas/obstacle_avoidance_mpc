@@ -5,8 +5,8 @@ This repository implements nonlinear MPC using the Casadi optimization library. 
 # Installation
 
 ```
-git clone --recurse-submodules git@github.com:dawsonc/obstacle_avoidance_mpc.git
+git clone --recurse-submodules git@github.com:chelseas/obstacle_avoidance_mpc.git
 cd obstacle_avoidance_mpc
-conda env create -n obstacle_avoidance_mpc python=3.9
+conda create -n obstacle_avoidance_mpc python=3.9
 pip install -e .
 ```
