@@ -37,6 +37,7 @@ class PolicyCloningModel(torch.nn.Module):
         # If a save file is provided, use the saved parameters
         saved_data: Dict[str, Any] = {}
         if load_from_file is not None:
+            print("Loading policy parameters from file.")
             saved_data = torch.load(load_from_file)
             self.hidden_layers = saved_data["hidden_layers"]
             self.hidden_layer_width = saved_data["hidden_layer_width"]
@@ -144,6 +145,7 @@ class PolicyCloningModel(torch.nn.Module):
         else:
             # Generate some training data
             # Start by sampling points uniformly from the state space
+            print("Generating ", n_pts, " training points.")
             x_train = torch.zeros((n_pts, self.n_state_dims))
             for dim in range(self.n_state_dims):
                 x_train[:, dim] = torch.Tensor(n_pts).uniform_(*self.state_space[dim])
