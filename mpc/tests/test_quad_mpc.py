@@ -118,7 +118,7 @@ def run_and_plot_quad_mpc():
     margin_z = (radius + margin) * np.sin(theta) + center[2]
     ax_xy.plot(obs_x, obs_y, "k-")
     ax_xy.plot(margin_x, margin_y, "k:")
-    ax_xz.plot(obs_x, obs_y, "k-", label="Obstacle")
+    ax_xz.plot(obs_x, obs_z, "k-", label="Obstacle")
     ax_xz.plot(margin_x, margin_z, "k:", label="Safety margin")
 
     ax_xy.set_xlabel("x")
@@ -129,9 +129,9 @@ def run_and_plot_quad_mpc():
     plt.title("MPC")
 
     ax_xy.set_xlim([-5.5, 1.5])
-    ax_xy.set_ylim([-1.0, 1.0])
+    ax_xy.set_ylim([-10.0, 10.0])
     ax_xz.set_xlim([-5.5, 1.5])
-    ax_xz.set_ylim([-1.0, 1.0])
+    ax_xz.set_ylim([-1.0, 5.0])
 
     ax_xy.set_aspect("equal")
     ax_xz.set_aspect("equal")
