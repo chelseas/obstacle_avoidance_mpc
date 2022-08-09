@@ -163,9 +163,18 @@ def construct_MPC_problem(
     # No need to add initial state constraints; that will be added when we solve
     # the problem
 
+    # state constraints
+    if clip:
+        for t in range(horizon):
+            for i in range(n_states):
+                if clip[i]:
+                    L, U = clip_lims
+                    opti.subject_to(x[t,i] <= U[i])
+                    opti.subject_to(x[t,i] >= L[i])
+
     # Add dynamics constraints via direct transcription
     for t in range(horizon):
-        add_dynamics_constraints(opti, dynamics_fn, x[t, :], u[t, :], x[t + 1, :], dt, clip=clip, clip_lims=clip_lims)
+        add_dynamics_constraints(opti, dynamics_fn, x[t, :], u[t, :], x[t + 1, :], dt) # clip=clip, clip_lims=clip_lims)
 
     # Return the MPC problem and the initial state and control variables
     return opti, x[0, :], u[0, :], x, u

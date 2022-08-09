@@ -40,6 +40,7 @@ def add_dynamics_constraints(
     if clip == []: # if you don't want to clip
         clip = [False]*x_now.shape[1]
     else:
+        print("Clipping dynamics")
         L, U = clip_lims
 
     # Add a constraint for each state variable
