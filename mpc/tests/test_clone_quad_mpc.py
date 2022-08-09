@@ -24,7 +24,7 @@ from mpc.nn import PolicyCloningModel
 
 # parameters for the obstacle
 radius = 1.0
-margin = 0.1
+margin = 0.5
 center = [0.0, 0.0, 2.5] # should y be 1e-5 ?
 n_states = 6
 horizon = 20
