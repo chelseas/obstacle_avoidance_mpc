@@ -226,10 +226,10 @@ def save_to_onnx(policy, save_path):
 
 
 if __name__ == "__main__":
-    suffix = "7"
-    data_path = 'mpc/tests/data/quad_data_'+suffix
-    generate_quad_data(int(10000), data_path)
+    suffix = "9"
+    data_path = 'mpc/tests/data/quad_data_8'
+    # generate_quad_data(int(5000), data_path)
     model_save_path = "mpc/tests/data/quad_policy_"+suffix
-    policy = clone_quad_mpc(model_save_path+'.pth', hidden_layer_width=32, hidden_layers=2, lambd=1e-12, train=True, epochs=10, data_path=data_path,) #, load_from_file=model_load_path) # data_path='mpc/tests/data/quad_mpc_data', n_pts=1e5
+    policy = clone_quad_mpc(model_save_path+'.pth', hidden_layer_width=32, hidden_layers=2, lambd=1e-8, train=True, epochs=50, data_path=data_path,) #, load_from_file=model_load_path) # data_path='mpc/tests/data/quad_mpc_data', n_pts=1e5
     # save_to_onnx(policy, model_save_path+".onnx")
-    simulate_and_plot(policy, savename="nn_policy_6.png")
+    simulate_and_plot(policy, savename="nn_policy_"+suffix+".png")
