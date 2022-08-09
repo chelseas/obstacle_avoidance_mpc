@@ -130,3 +130,5 @@ dmypy.json
 
 # make data files .pt and models .pth
 mpc/tests/data/*.pt
+mpc/tests/data/*.nnet
+mpc/tests/data/*.onnx
