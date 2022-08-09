@@ -116,6 +116,7 @@ def clone_quad_mpc(save_path, hidden_layers=2, hidden_layer_width=32, lambd=1, t
     n_epochs = epochs
     learning_rate = 1e-3
     if train:
+        print("Training...")
         print("Using ", lambd, " weight on regularization loss")
         cloned_policy.clone(
             mpc_expert,
@@ -225,8 +226,8 @@ def save_to_onnx(policy, save_path):
 
 
 if __name__ == "__main__":
-    # generate_quad_data(100, 'mpc/tests/data/quad_small_TEST')
-    model_save_path = "mpc/tests/data/TIMETEST"
-    policy = clone_quad_mpc(model_save_path+'.pth', hidden_layer_width=12, hidden_layers=1, lambd=1e-7, train=True, epochs=10, n_pts=100) #, load_from_file=model_load_path) # data_path='mpc/tests/data/quad_mpc_data',
-    # save_to_onnx(policy, model_save_path+".onnx")
+    # generate_quad_data(int(1e5), 'mpc/tests/data/quad_data_2')
+    model_save_path = "mpc/tests/data/quad_policy_2"
+    policy = clone_quad_mpc(model_save_path+'.pth', hidden_layer_width=12, hidden_layers=2, lambd=1e-9, train=True, epochs=10, n_pts=100000, data_path='mpc/tests/data/quad_data_2',) #, load_from_file=model_load_path) # data_path='mpc/tests/data/quad_mpc_data',
+    save_to_onnx(policy, model_save_path+".onnx")
     simulate_and_plot(policy)
