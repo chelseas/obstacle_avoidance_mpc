@@ -20,7 +20,7 @@ margin = 0.5
 center = [0.0, 0.0, 2.5] 
 
 
-def test_quad_mpc(x0: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def test_quad_mpc(x0: np.ndarray, n_steps=20) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Run a test of obstacle avoidance MPC with a quad and return the results"""
     # -------------------------------------------
     # Define the problem
@@ -71,7 +71,7 @@ def test_quad_mpc(x0: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     # -------------------------------------------
     # Simulate and return the results
     # -------------------------------------------
-    n_steps = 20
+    # n_steps = 20
     return simulate_mpc(
         opti,
         x0_variables,
@@ -84,6 +84,8 @@ def test_quad_mpc(x0: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         x_variables=x_variables,
         u_variables=u_variables,
         substeps=10,
+        clip=clip,
+        clip_lims=clip_lims
     )
 
 
@@ -106,7 +108,7 @@ def run_and_plot_quad_mpc():
 
     for x0 in x0s:
         # Run the MPC
-        _, x, u = test_quad_mpc(x0)
+        _, x, u = test_quad_mpc(x0, n_steps=20)
 
         # Plot it (in x-y plane)
         ax_xy.plot(x0[0], x0[1], "ro")
@@ -146,7 +148,8 @@ def run_and_plot_quad_mpc():
     # ax_xy.legend()
     ax_xz.legend()
 
-    plt.show()
+    # plt.show()
+    plt.savefig("mpc.png")
 
 
 def plot_sdf():

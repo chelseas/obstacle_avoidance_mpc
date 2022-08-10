@@ -7,8 +7,7 @@ import torch.nn as nn
 import numpy as np
 from tqdm import tqdm
 import time
-from multiprocessing import cpu_count
-from multiprocessing.pool import ThreadPool as Pool
+from multiprocessing import cpu_count, Pool
 
 class PolicyCloningModel(torch.nn.Module):
     def __init__(
@@ -103,38 +102,40 @@ class PolicyCloningModel(torch.nn.Module):
 
         # Now get the expert's control input at each of those points
 
-        # serial implementation
-        u_expert = torch.zeros((n_pts, self.n_control_dims))
-        data_gen_range = tqdm(range(n_pts))
-        data_gen_range.set_description("Generating training data...")
-        t1 = time.time()
-        for i in data_gen_range:
-            u_expert[i, :] = expert(x_train[i, :])
-        mpc_time = (time.time() - t1)
-        print("Time taken for ", n_pts, " training points was ", mpc_time, " seconds.")
-        print("\n Avg. execution time for MPC was: (milliseconds) ", (mpc_time/len(data_gen_range)/20)*1000)
+        # # serial implementation
+        # u_expert = torch.zeros((n_pts, self.n_control_dims))
+        # data_gen_range = tqdm(range(n_pts))
+        # data_gen_range.set_description("Generating training data...")
+        # t1 = time.time()
+        # for i in data_gen_range:
+        #     u_expert[i, :] = expert(x_train[i, :])
+        # mpc_time = (time.time() - t1)
+        # print("Time taken for ", n_pts, " training points was ", mpc_time, " seconds.")
+        # print("\n Avg. execution time for MPC was: (milliseconds) ", (mpc_time/len(data_gen_range)/20)*1000)
 
-        # # parallel implementation
-        # # TODO: change to using pathos and dill
-        # # https://stackoverflow.com/questions/8804830/python-multiprocessing-picklingerror-cant-pickle-type-function
-        # print("Using parallel data collection.")
-        # print("shape of xtrain: ", x_train.shape)
-        # data = torch.tensor_split(x_train, cpu_count(), dim=0)
-        # def multi_expert_wrapper(many_x):
-        #     # multi expert wrapper
-        #     print("Recieved chunk of size ", many_x.shape[0])
-        #     u_expert_chunk = torch.zeros((many_x.shape[0], self.n_control_dims))
-        #     t1 =time.time()
-        #     for i in range(many_x.shape[0]):
-        #         u_expert_chunk[i, :] = expert(many_x[i, :])
-        #     print("Finished chunk in ", time.time()-t1, " seconds")
-        #     return u_expert_chunk
+        # parallel implementation
+        # TODO: change to using pathos and dill
+        # https://stackoverflow.com/questions/8804830/python-multiprocessing-picklingerror-cant-pickle-type-function
+        print("Using parallel data collection.")
+        print("shape of xtrain: ", x_train.shape)
+        print("Using ", cpu_count(), " cpus")
+        data = torch.tensor_split(x_train, cpu_count(), dim=0)
+        global multi_expert_wrapper
+        def multi_expert_wrapper(many_x):
+            # multi expert wrapper
+            print("Recieved chunk of size ", many_x.shape[0])
+            u_expert_chunk = torch.zeros((many_x.shape[0], self.n_control_dims))
+            t1 =time.time()
+            for i in range(many_x.shape[0]):
+                u_expert_chunk[i, :] = expert(many_x[i, :])
+            print("Finished chunk in ", time.time()-t1, " seconds")
+            return u_expert_chunk
             
-        # with Pool(cpu_count()) as p:
-        #     u_expert_chunks = list(tqdm(p.imap(multi_expert_wrapper, data)))
+        with Pool(cpu_count()) as p:
+            u_expert_chunks = list(tqdm(p.imap(multi_expert_wrapper, data)))
 
-        # u_expert = torch.vstack(u_expert_chunks) # stack together each chunk
-        # print("len(u_expert)=", len(u_expert))
+        u_expert = torch.vstack(u_expert_chunks) # stack together each chunk
+        print("len(u_expert)=", len(u_expert))
 
         # Save it to a file
         torch.save(x_train, save_path + '_examples.pt')

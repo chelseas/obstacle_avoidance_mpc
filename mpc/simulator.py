@@ -5,11 +5,28 @@ import casadi
 import numpy as np
 from tqdm import tqdm
 import time
+import math
 
 from mpc.dynamics_constraints import DynamicsFunction
 from mpc.mpc import solve_MPC_problem
 from mpc.nn import PolicyCloningModel
 
+def core_simulation_steps(x_t, u_t, substeps, dynamics_fn, n_states, dt, clip=[], clip_lims=[]):
+    # Update the state using the dynamics. Integrate at a higher frequency using
+    # zero-order hold controls
+    x_tp1 = np.zeros(len(x_t))
+    for _ in range(substeps):
+        dx_dt = dynamics_fn(x_t, u_t)
+        for i in range(n_states):
+            if clip and clip[i]:
+                L,U = clip_lims
+                x_tp1_i = x_t[i] + dt / substeps * np.array(dx_dt[i])
+                x_tp1[i] = np.clip(x_tp1_i, L[i], U[i]) 
+            else:
+                x_tp1[i] = x_t[i] + dt / substeps * np.array(dx_dt[i])
+        x_t = x_tp1
+    
+    return x_tp1
 
 def simulate_mpc(
     opti: casadi.Opti,
@@ -23,6 +40,8 @@ def simulate_mpc(
     x_variables: Optional[casadi.MX] = None,
     u_variables: Optional[casadi.MX] = None,
     substeps: int = 1,
+    clip=[],
+    clip_lims=[]
 ):
     """
     Simulate a rollout of the MPC controller specified by the given optimization problem.
@@ -86,15 +105,11 @@ def simulate_mpc(
         else:
             n_infeasible += 1
 
-        # Update the state using the dynamics. Integrate at a higher frequency using
-        # zero-order hold controls
-        x_next = np.array(x[tstep])
-        for _ in range(substeps):
-            dx_dt = dynamics_fn(x_next, u[tstep])
-            for i in range(n_states):
-                x_next[i] = x_next[i] + dt / substeps * np.array(dx_dt[i])
-
-        x[tstep + 1] = x_next
+        # step
+        x_t = np.array(x[tstep])
+        u_t = u[tstep]
+        x_tp1 = core_simulation_steps(x_t, u_t, substeps, dynamics_fn, n_states, dt, clip=clip, clip_lims=clip_lims)
+        x[tstep + 1] = x_tp1
 
     print(f"{n_infeasible} infeasible steps")
 
@@ -108,6 +123,8 @@ def simulate_nn(
     dynamics_fn: DynamicsFunction,
     n_steps: int,
     substeps: int = 1,
+    clip=[],
+    clip_lims=[]
 ):
     """
     Simulate a rollout of a neural controller
@@ -132,6 +149,10 @@ def simulate_nn(
     x = np.zeros((n_steps, n_states))
     u = np.zeros((n_steps - 1, n_controls))
 
+    # collect some statistics 
+    x_max = np.ones(policy.n_state_dims)*(-math.inf)
+    x_min = np.ones(policy.n_state_dims)*(math.inf)
+
     # Set the initial conditions
     x[0] = x0
 
@@ -146,16 +167,17 @@ def simulate_nn(
         avg_nn_etime += time.time() - t1 
         u[tstep] = u_current
 
-        # Update the state using the dynamics. Integrate at a higher frequency using
-        # zero-order hold controls
-        x_next = np.array(x[tstep])
-        for _ in range(substeps):
-            dx_dt = dynamics_fn(x_next, u[tstep])
-            for i in range(n_states):
-                x_next[i] = x_next[i] + dt / substeps * np.array(dx_dt[i])
+        # step
+        x_t = np.array(x[tstep])
+        u_t = u[tstep]
+        x_tp1 = core_simulation_steps(x_t, u_t, substeps, dynamics_fn, n_states, dt, clip=clip, clip_lims=clip_lims)
+        x[tstep + 1] = x_tp1
 
-        x[tstep + 1] = x_next
+        # keep track of stuff
+        x_max = np.maximum(x_max, x_tp1)
+        x_min = np.minimum(x_max, x_tp1)
+
     avg_nn_etime /= len(t_range)
     print("Avg NN execution time: (miliseconds) ", avg_nn_etime*1000)
 
-    return t, x, u
+    return t, x, u, x_max, x_min
