@@ -8,6 +8,7 @@ import numpy as np
 from tqdm import tqdm
 import time
 from multiprocessing import cpu_count, Pool
+import glob
 
 class PolicyCloningModel(torch.nn.Module):
     def __init__(
@@ -119,7 +120,6 @@ class PolicyCloningModel(torch.nn.Module):
         print("Using parallel data collection.")
         print("shape of xtrain: ", x_train.shape)
         print("Using ", cpu_count(), " cpus")
-        data = torch.tensor_split(x_train, cpu_count(), dim=0)
         global multi_expert_wrapper
         def multi_expert_wrapper(many_x):
             # multi expert wrapper
@@ -132,18 +132,26 @@ class PolicyCloningModel(torch.nn.Module):
             return u_expert_chunk
         
         t1 = time.time()
-        with Pool(cpu_count()) as p:
-            u_expert_chunks = list(tqdm(p.imap(multi_expert_wrapper, data)))
+        # Generate 100,000 at a time
+        u_expert_chunks = []
+        chunk_size = min(100000, n_pts)
+        for i in range(0, n_pts-1, chunk_size):
+            fi = int(i + chunk_size)
+            data = torch.tensor_split(x_train[i:i+fi], cpu_count(), dim=0)
+            with Pool(cpu_count()) as p:
+                u_expert_chunks.extend(list(tqdm(p.imap(multi_expert_wrapper, data))))
+            print(f"Finished pool {i}. ")
         total_time = time.time() - t1
-        print("Finished pool. ")
+        
         u_expert = torch.vstack(u_expert_chunks) # stack together each chunk
         print("len(u_expert)=", len(u_expert))
         print("Finished collecting training data! Took ", total_time, " sec")
-        # Save it to a file
-        # in chunks of 100,000 at a time
-        torch.save(x_train, save_path + '_examples.pt')
-        torch.save(u_expert, save_path + '_labels.pt')
-
+        
+        torch.save(x_train, f"{save_path}_examples.pt")
+        torch.save(u_expert, f"{save_path}_labels.pt")
+        # torch.save(x_train[i:fi], f"{save_path}_examples_{i}.pt")
+        # torch.save(u_expert[i:fi], f"{save_path}_labels_{i}.pt")
+        # print(f"saved chunk {i}")
 
     def clone(
         self,
@@ -169,9 +177,22 @@ class PolicyCloningModel(torch.nn.Module):
         """
 
         if data_path is not None:
-            x_train = torch.load(data_path + '_examples.pt')
-            u_expert = torch.load(data_path + '_labels.pt')
+            # load data in chunks
+            # fnames_xtrain = glob.glob(data_path + '_examples_[0-9]*.pt')
+            # fnames_xtrain.sort()
+            # fnames_uexpert = glob.glob(data_path + '_labels_[0-9]*.pt')
+            # fnames_uexpert.sort()
+            # x_train_tmp = [torch.load(fnames_xtrain.pop(0))]
+            # u_expert_tmp = [torch.load(fnames_uexpert.pop(0))]
+            # for i in range(len(fnames_xtrain)):
+            #     x_train_tmp.append(torch.load(fnames_xtrain.pop(0)))
+            #     u_expert_tmp.append(torch.load(fnames_uexpert.pop(0)))
+            # x_train = torch.vstack(x_train_tmp)
+            # u_expert = torch.vstack(u_expert_tmp)
+            x_train = torch.load(data_path + "_examples.pt")
+            u_expert = torch.load(data_path + "_labels.pt")
             n_pts = x_train.shape[0]
+            print(f"Loaded {n_pts} samples")
         else:
             # Generate some training data
             # Start by sampling points uniformly from the state space
