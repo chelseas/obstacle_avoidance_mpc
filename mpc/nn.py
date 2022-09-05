@@ -93,7 +93,7 @@ class PolicyCloningModel(torch.nn.Module):
                           expert: Callable[[torch.Tensor], torch.Tensor],
                           n_pts: int,
                           save_path: str):
-        
+        print("attempting to generate ", n_pts, " training points...")
         # Generate some training data
         # Start by sampling points uniformly from the state space
         x_train = torch.zeros((n_pts, self.n_state_dims))
@@ -130,14 +130,17 @@ class PolicyCloningModel(torch.nn.Module):
                 u_expert_chunk[i, :] = expert(many_x[i, :])
             print("Finished chunk in ", time.time()-t1, " seconds")
             return u_expert_chunk
-            
+        
+        t1 = time.time()
         with Pool(cpu_count()) as p:
             u_expert_chunks = list(tqdm(p.imap(multi_expert_wrapper, data)))
-
+        total_time = time.time() - t1
+        print("Finished pool. ")
         u_expert = torch.vstack(u_expert_chunks) # stack together each chunk
         print("len(u_expert)=", len(u_expert))
-
+        print("Finished collecting training data! Took ", total_time, " sec")
         # Save it to a file
+        # in chunks of 100,000 at a time
         torch.save(x_train, save_path + '_examples.pt')
         torch.save(u_expert, save_path + '_labels.pt')
 

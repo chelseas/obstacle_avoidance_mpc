@@ -16,7 +16,7 @@ from mpc.simulator import simulate_mpc
 
 
 radius = np.sqrt(2)
-margin = 0.25
+margin = 0.5
 center = [0.0, 0.0, 2.5] # @Charles why was y=1e-5 before??
 
 
@@ -90,8 +90,8 @@ def test_quad_mpc(x0: np.ndarray, n_steps=20) -> Tuple[np.ndarray, np.ndarray, n
 
 
 def run_and_plot_quad_mpc():
-    ys = np.linspace(-0.5, 0.5, 3)
-    xs = np.linspace(-5.0, -1.5, 3) #-4.5, 3)
+    ys = np.linspace(-.75, .75, 3)
+    xs = np.linspace(-.75, .75, 3) #-4.5, 3)
     vxs = np.linspace(-0.5, 0.5, 2)
     vys = np.linspace(-0.5, 0.5, 2)
     x0s = []
@@ -111,11 +111,11 @@ def run_and_plot_quad_mpc():
         _, x, u = test_quad_mpc(x0, n_steps=20)
 
         # Plot it (in x-y plane)
-        ax_xy.plot(x0[0], x0[1], "ro")
-        ax_xy.plot(x[:, 0], x[:, 1], "r-", linewidth=1) #, label="vx0:"+str(x[0,3])+", vy0:"+str(x[0,4]))
+        ax_xy.plot(x0[0], x0[1], "r.", markersize=0.1)
+        ax_xy.plot(x[:, 0], x[:, 1], "r-", linewidth=.25) #, label="vx0:"+str(x[0,3])+", vy0:"+str(x[0,4]))
         # and in (x-z plane)
         # ax_xz.plot(x0[0], x0[2], "ro")
-        ax_xz.plot(x[:, 0], x[:, 2], "r-", linewidth=1)
+        ax_xz.plot(x[:, 0], x[:, 2], "r-", linewidth=.25)
 
     # Plot obstacle
     theta = np.linspace(0, 2 * np.pi, 100)
@@ -127,7 +127,7 @@ def run_and_plot_quad_mpc():
     margin_z = (radius + margin) * np.sin(theta) + center[2]
     ax_xy.plot(obs_x, obs_y, "k-")
     ax_xy.plot(margin_x, margin_y, "k:")
-    ax_xy.plot([-1., 1., 1., -1., -1.], [-1, -1, 1, 1, -1], "r-", label="the box")
+    ax_xy.plot([-1., 1., 1., -1., -1.], [-1, -1, 1, 1, -1], "b-", label="the box", linewidth=0.25)
 
     ax_xz.plot(obs_x, obs_z, "k-", label="Obstacle")
     ax_xz.plot(margin_x, margin_z, "k:", label="Safety margin")

@@ -24,13 +24,8 @@ from mpc.network_utils import pytorch_to_nnet
 from mpc.nn import PolicyCloningModel
 
 # parameters for the obstacle
-<<<<<<< HEAD
 radius = np.sqrt(2)
-margin = 0.25
-=======
-radius = 1.0
 margin = 0.5
->>>>>>> 5ba0cc330faa9f4602ebac9f2a93260b040541ce
 center = [0.0, 0.0, 2.5] # should y be 1e-5 ?
 n_states = 6
 horizon = 20
@@ -40,8 +35,8 @@ dynamics_fn = quad6d_dynamics
 
 state_space = [
     (-5.5, 3.),  # px
-    (-5.5, 5.5),  # py
-    (2.0, 3.0),  # pz
+    (-4, 4.),  # py
+    (1.0, 4),  # pz
     (-1.0, 1.0),  # vx
     (-1.0, 1.0),  # vy
     (-1.0, 1.0),  # vz
@@ -224,7 +219,7 @@ def simulate_and_plot(policy, savename="nn_policy.png", n_steps=20):
 
     ax_xz.legend()
 
-    plt.savefig(savename)
+    plt.savefig(savename, dpi=600)
 
 def save_to_onnx(policy, save_path):
     """Save to an onnx file"""
@@ -240,25 +235,17 @@ def save_to_onnx(policy, save_path):
 
 
 if __name__ == "__main__":
-<<<<<<< HEAD
-    generate_quad_data(int(1e5), 'mpc/tests/data/quad_data_3')
-    model_save_path = "mpc/tests/data/quad_policy_3"
-    policy = clone_quad_mpc(model_save_path+'.pth', hidden_layer_width=16, hidden_layers=4, lambd=1e-12, train=True, epochs=50, data_path='mpc/tests/data/quad_data_2',) #, load_from_file=model_load_path) # data_path='mpc/tests/data/quad_mpc_data',
-    save_to_onnx(policy, model_save_path+".onnx")
-    simulate_and_plot(policy)
-=======
-    suffix = "5e5"
+    suffix = "hackathon_take2"
     data_path = 'mpc/tests/data/quad_data_'+suffix
     generate_quad_data(int(5e5), data_path)
     model_save_path = "mpc/tests/data/quad_policy_"+suffix
-    # model_load_path = model_save_path+".pth"
+    model_load_path = model_save_path+".pth"
     policy = clone_quad_mpc(model_save_path+'.pth', 
                             hidden_layer_width=16, 
                             hidden_layers=2, 
                             lambd=0.0, 
-                            train=True, 
+                            train=False, 
                             epochs=50,
-                            data_path=data_path) # load_from_file=model_load_path) # data_path='mpc/tests/data/quad_mpc_data', n_pts=1e5
-    save_to_onnx(policy, model_save_path+".onnx")
+                            data_path=data_path, load_from_file=model_load_path) # data_path='mpc/tests/data/quad_mpc_data', n_pts=1e5
+    # save_to_onnx(policy, model_save_path+".onnx")
     simulate_and_plot(policy, savename="nn_policy_"+suffix+".png", n_steps=20)
->>>>>>> 5ba0cc330faa9f4602ebac9f2a93260b040541ce
