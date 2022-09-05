@@ -234,17 +234,17 @@ def save_to_onnx(policy, save_path):
 
 
 if __name__ == "__main__":
-    suffix = "smaller_domain"
+    suffix = "5e5"
     data_path = 'mpc/tests/data/quad_data_'+suffix
-    # generate_quad_data(int(1e5), data_path)
-    model_save_path = "mpc/tests/data/quad_policy_"+suffix+"_smaller_network"
+    generate_quad_data(int(5e5), data_path)
+    model_save_path = "mpc/tests/data/quad_policy_"+suffix
     # model_load_path = model_save_path+".pth"
     policy = clone_quad_mpc(model_save_path+'.pth', 
                             hidden_layer_width=16, 
                             hidden_layers=2, 
                             lambd=0.0, 
                             train=True, 
-                            epochs=20,
+                            epochs=50,
                             data_path=data_path) # load_from_file=model_load_path) # data_path='mpc/tests/data/quad_mpc_data', n_pts=1e5
     save_to_onnx(policy, model_save_path+".onnx")
-    simulate_and_plot(policy, savename="nn_policy_"+suffix+"_smaller_network.png", n_steps=20)
+    simulate_and_plot(policy, savename="nn_policy_"+suffix+".png", n_steps=20)
