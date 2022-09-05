@@ -15,8 +15,8 @@ from mpc.obstacle_constraints import hypersphere_sdf
 from mpc.simulator import simulate_mpc
 
 
-radius = 1.0
-margin = 0.1
+radius = np.sqrt(2)
+margin = 0.25
 center = [0.0, 0.0, 2.5] # @Charles why was y=1e-5 before??
 
 
@@ -40,7 +40,7 @@ def test_quad_mpc(x0: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     x_goal = np.array([100.0, 0.0, 0.0, 0.0, 0.0, 0.0])
     goal_direction = np.array([1.0, 0.0, 0.0, 0.0, 0.0, 0.0])
     running_cost_fn = lambda x, u: lqr_running_cost(
-        x, u, x_goal, dt * np.diag([0.0, 0.0, 0.0, 0.0, 0.0, 0.0]), 1 * np.eye(3)
+        x, u, x_goal, dt * np.diag([0.0, 0.0, 0.0, 0.1, 0.1, 0.1]), 1 * np.eye(3)
     )
     terminal_cost_fn = lambda x: distance_travelled_terminal_cost(x, goal_direction)
     # terminal_cost_fn = lambda x: squared_error_terminal_cost(x, x_goal)
@@ -81,8 +81,8 @@ def test_quad_mpc(x0: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
 
 
 def run_and_plot_quad_mpc():
-    ys = np.linspace(-0.5, 0.5, 2)
-    xs = np.linspace(-5.0, -4.5, 2)
+    ys = np.linspace(-0.5, 0.5, 3)
+    xs = np.linspace(-5.0, -1.5, 3) #-4.5, 3)
     vxs = np.linspace(-0.5, 0.5, 2)
     vys = np.linspace(-0.5, 0.5, 2)
     x0s = []
@@ -118,8 +118,11 @@ def run_and_plot_quad_mpc():
     margin_z = (radius + margin) * np.sin(theta) + center[2]
     ax_xy.plot(obs_x, obs_y, "k-")
     ax_xy.plot(margin_x, margin_y, "k:")
+    ax_xy.plot([-1., 1., 1., -1., -1.], [-1, -1, 1, 1, -1], "r-", label="the box")
+
     ax_xz.plot(obs_x, obs_z, "k-", label="Obstacle")
     ax_xz.plot(margin_x, margin_z, "k:", label="Safety margin")
+    # ax_xz.plot([-1., 1., 1., -1., -1.], [-1, -1, 1, 1, -1], "r-", label="the box")
 
     ax_xy.set_xlabel("x")
     ax_xy.set_ylabel("y")
@@ -139,7 +142,8 @@ def run_and_plot_quad_mpc():
     # ax_xy.legend()
     ax_xz.legend()
 
-    plt.show()
+    # plt.show()
+    plt.savefig("mpc.png", dpi=400)
 
 
 def plot_sdf():

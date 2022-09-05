@@ -49,8 +49,8 @@ def solve_MPC_problem(
     """
     # Add a constraint for the start state
     for i in range(x0_variables.shape[1]):
-        print("x0_variables[0,i].shape = ", x0_variables[0,i].shape)
-        print("current_state[i].shape = ", current_state[i].shape)
+        # print("x0_variables[0,i].shape = ", x0_variables[0,i].shape)
+        # print("current_state[i].shape = ", current_state[i].shape)
         opti.subject_to(x0_variables[0, i] == current_state[i])
 
     # Set initial guesses if provided

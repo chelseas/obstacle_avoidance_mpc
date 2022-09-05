@@ -49,8 +49,8 @@ def make_obstacle_cost(
     obstacle_sdf = obstacle_sdf_fn(x_now)
 
     # Add a cost that is positive if we are too close
-    return casadi.exp(1e2 * (margin - obstacle_sdf))
-
+    stiffness = 100
+    return casadi.log(1 + casadi.exp(stiffness * (margin - obstacle_sdf))) / stiffness
 
 def hypersphere_sdf(
     x: casadi.MX, radius: float, indices: List[int], center: List[float]
