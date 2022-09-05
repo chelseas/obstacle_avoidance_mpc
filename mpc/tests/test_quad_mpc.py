@@ -20,7 +20,7 @@ margin = 0.25
 center = [0.0, 0.0, 2.5] # @Charles why was y=1e-5 before??
 
 
-def test_quad_mpc(x0: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def test_quad_mpc(x0: np.ndarray, n_steps=20) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Run a test of obstacle avoidance MPC with a quad and return the results"""
     # -------------------------------------------
     # Define the problem
@@ -28,7 +28,7 @@ def test_quad_mpc(x0: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     n_states = 6
     n_controls = 3
     horizon = 20
-    dt = 0.1
+    dt = 1.0
 
     # Define dynamics
     dynamics_fn = quad6d_dynamics
@@ -37,7 +37,7 @@ def test_quad_mpc(x0: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     obstacle_fns = [(lambda x: hypersphere_sdf(x, radius, [0, 1, 2], center), margin)]
 
     # Define costs to make the quad go to the right
-    x_goal = np.array([100.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    x_goal = np.array([10.0, 0.0, 0.0, 0.0, 0.0, 0.0])
     goal_direction = np.array([1.0, 0.0, 0.0, 0.0, 0.0, 0.0])
     running_cost_fn = lambda x, u: lqr_running_cost(
         x, u, x_goal, dt * np.diag([0.0, 0.0, 0.0, 0.1, 0.1, 0.1]), 1 * np.eye(3)
@@ -47,6 +47,11 @@ def test_quad_mpc(x0: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
 
     # Define control bounds
     control_bounds = [np.pi / 10, np.pi / 10, 2.0]
+
+    # define state clipping limits 
+    clip = [False, False, False, True, True, True] # clip velocity
+    clip_lims = ([0.,0.,0.,-1.0, -1.0, -1.0],
+                 [0.,0.,0.,1.0, 1.0, 1.0])
 
     # Define MPC problem
     opti, x0_variables, u0_variables, x_variables, u_variables = construct_MPC_problem(
@@ -59,12 +64,14 @@ def test_quad_mpc(x0: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         running_cost_fn,
         terminal_cost_fn,
         control_bounds,
+        clip=clip,
+        clip_lims=clip_lims
     )
 
     # -------------------------------------------
     # Simulate and return the results
     # -------------------------------------------
-    n_steps = 20
+    # n_steps = 20
     return simulate_mpc(
         opti,
         x0_variables,
@@ -77,6 +84,8 @@ def test_quad_mpc(x0: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         x_variables=x_variables,
         u_variables=u_variables,
         substeps=10,
+        clip=clip,
+        clip_lims=clip_lims
     )
 
 
@@ -99,7 +108,7 @@ def run_and_plot_quad_mpc():
 
     for x0 in x0s:
         # Run the MPC
-        _, x, u = test_quad_mpc(x0)
+        _, x, u = test_quad_mpc(x0, n_steps=20)
 
         # Plot it (in x-y plane)
         ax_xy.plot(x0[0], x0[1], "ro")
@@ -131,10 +140,10 @@ def run_and_plot_quad_mpc():
     ax_xz.set_ylabel("z")
     plt.title("MPC")
 
-    ax_xy.set_xlim([-5.5, 1.5])
-    ax_xy.set_ylim([-10.0, 10.0])
-    ax_xz.set_xlim([-5.5, 1.5])
-    ax_xz.set_ylim([-1.0, 5.0])
+    # ax_xy.set_xlim([-5.5, 10.0])
+    # ax_xy.set_ylim([-10.0, 10.0])
+    # ax_xz.set_xlim([-5.5, 10.0])
+    # ax_xz.set_ylim([-1.0, 5.0])
 
     ax_xy.set_aspect("equal")
     ax_xz.set_aspect("equal")
@@ -144,7 +153,6 @@ def run_and_plot_quad_mpc():
 
     # plt.show()
     plt.savefig("mpc.png", dpi=400)
-
 
 def plot_sdf():
     sdf_fn = lambda x: hypersphere_sdf(x, radius, [0, 1, 2], center)

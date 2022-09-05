@@ -7,6 +7,7 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 import time
+import math
 
 from NNet.converters.onnx2nnet import onnx2nnet
 
@@ -23,8 +24,13 @@ from mpc.network_utils import pytorch_to_nnet
 from mpc.nn import PolicyCloningModel
 
 # parameters for the obstacle
+<<<<<<< HEAD
 radius = np.sqrt(2)
 margin = 0.25
+=======
+radius = 1.0
+margin = 0.5
+>>>>>>> 5ba0cc330faa9f4602ebac9f2a93260b040541ce
 center = [0.0, 0.0, 2.5] # should y be 1e-5 ?
 n_states = 6
 horizon = 20
@@ -33,14 +39,18 @@ dt = 1.0
 dynamics_fn = quad6d_dynamics
 
 state_space = [
-    (-5.5, 10.),  # px
+    (-5.5, 3.),  # px
     (-5.5, 5.5),  # py
-    (0.0, 5.0),  # pz
-    (-1.5, 1.5),  # vx
-    (-1.5, 1.5),  # vy
-    (-1.5, 1.5),  # vz
+    (2.0, 3.0),  # pz
+    (-1.0, 1.0),  # vx
+    (-1.0, 1.0),  # vy
+    (-1.0, 1.0),  # vz
 ]
 
+# define state clipping limits 
+clip = [False, False, False, True, True, True] # clip velocity
+clip_lims = ([0.,0.,0.,-1.0, -1.0, -1.0],
+                [0.,0.,0.,1.0, 1.0, 1.0])
 
 def define_quad_mpc_expert():
     # -------------------------------------------
@@ -61,11 +71,6 @@ def define_quad_mpc_expert():
 
     # Define control bounds
     control_bounds = [np.pi / 10, np.pi / 10, 2.0]
-
-    # define state clipping limits 
-    clip = [False, False, False, True, True, True] # clip velocity
-    clip_lims = ([0.,0.,0.,-1.0, -1.0, -1.0],
-                 [0.,0.,0.,1.0, 1.0, 1.0])
 
     # Define MPC problem
     opti, x0_variables, u0_variables, x_variables, u_variables = construct_MPC_problem(
@@ -96,7 +101,7 @@ def define_quad_mpc_expert():
     return mpc_expert
 
 
-def clone_quad_mpc(save_path, hidden_layers=2, hidden_layer_width=32, lambd=1, train=True, data_path=None, load_from_file=None, epochs=50, n_pts=int(1e5)):
+def clone_quad_mpc(save_path, hidden_layers=2, hidden_layer_width=32, lambd=1, train=True, data_path=None, load_from_file=None, epochs=50, n_pts=int(1e5), learning_rate=1e-3):
     # -------------------------------------------
     # Clone the MPC policy
     # -------------------------------------------
@@ -114,7 +119,6 @@ def clone_quad_mpc(save_path, hidden_layers=2, hidden_layer_width=32, lambd=1, t
 
     # n_pts = int(1e5)
     n_epochs = epochs
-    learning_rate = 1e-3
     if train:
         print("Training...")
         print("Using ", lambd, " weight on regularization loss")
@@ -145,7 +149,7 @@ def generate_quad_data(npts, save_file):
 
     cloned_policy.gen_training_data(mpc_expert, npts, save_file)
 
-def simulate_and_plot(policy, savename="nn_policy.png"):
+def simulate_and_plot(policy, savename="nn_policy.png", n_steps=20):
     # -------------------------------------------
     # Plot a rollout of the cloned
     # -------------------------------------------
@@ -164,16 +168,22 @@ def simulate_and_plot(policy, savename="nn_policy.png"):
     ax_xy = fig.add_subplot(1, 2, 1)
     ax_xz = fig.add_subplot(1, 2, 2)
 
-    n_steps = 20
+    # n_steps = 20
+    x_max = np.ones(policy.n_state_dims)*(-math.inf)
+    x_min = np.ones(policy.n_state_dims)*(math.inf)
     for x0 in x0s:
-        _, x, u = simulate_nn(
+        _, x, u, x_max_i, x_min_i = simulate_nn(
             policy,
             x0,
             dt,
             dynamics_fn,
             n_steps,
             substeps=10,
+            clip=clip,
+            clip_lims=clip_lims
         )
+        x_max = np.maximum(x_max_i, x_max)
+        x_min = np.minimum(x_min_i, x_min)
 
         # Plot it (in x-y plane)
         ax_xy.plot(x0[0], x0[1], "ro")
@@ -181,6 +191,9 @@ def simulate_and_plot(policy, savename="nn_policy.png"):
         # and in (x-z plane)
         # ax_xz.plot(x0[0], x0[2], "ro")
         ax_xz.plot(x[:, 0], x[:, 2], "r-", linewidth=1)
+    
+    print("max state values: ", x_max)
+    print("min state values: ", x_min)
 
     # Plot obstacle
     theta = np.linspace(0, 2 * np.pi, 100)
@@ -227,8 +240,25 @@ def save_to_onnx(policy, save_path):
 
 
 if __name__ == "__main__":
+<<<<<<< HEAD
     generate_quad_data(int(1e5), 'mpc/tests/data/quad_data_3')
     model_save_path = "mpc/tests/data/quad_policy_3"
     policy = clone_quad_mpc(model_save_path+'.pth', hidden_layer_width=16, hidden_layers=4, lambd=1e-12, train=True, epochs=50, data_path='mpc/tests/data/quad_data_2',) #, load_from_file=model_load_path) # data_path='mpc/tests/data/quad_mpc_data',
     save_to_onnx(policy, model_save_path+".onnx")
     simulate_and_plot(policy)
+=======
+    suffix = "5e5"
+    data_path = 'mpc/tests/data/quad_data_'+suffix
+    generate_quad_data(int(5e5), data_path)
+    model_save_path = "mpc/tests/data/quad_policy_"+suffix
+    # model_load_path = model_save_path+".pth"
+    policy = clone_quad_mpc(model_save_path+'.pth', 
+                            hidden_layer_width=16, 
+                            hidden_layers=2, 
+                            lambd=0.0, 
+                            train=True, 
+                            epochs=50,
+                            data_path=data_path) # load_from_file=model_load_path) # data_path='mpc/tests/data/quad_mpc_data', n_pts=1e5
+    save_to_onnx(policy, model_save_path+".onnx")
+    simulate_and_plot(policy, savename="nn_policy_"+suffix+".png", n_steps=20)
+>>>>>>> 5ba0cc330faa9f4602ebac9f2a93260b040541ce
