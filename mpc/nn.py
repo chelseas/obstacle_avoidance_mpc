@@ -137,7 +137,8 @@ class PolicyCloningModel(torch.nn.Module):
         chunk_size = min(100000, n_pts)
         for i in range(0, n_pts-1, chunk_size):
             fi = int(i + chunk_size)
-            data = torch.tensor_split(x_train[i:i+fi], cpu_count(), dim=0)
+            data_portion = x_train[i:fi].detach().clone()
+            data = torch.tensor_split(data_portion, cpu_count(), dim=0)
             with Pool(cpu_count()) as p:
                 u_expert_chunks.extend(list(tqdm(p.imap(multi_expert_wrapper, data))))
             print(f"Finished pool {i}. ")
