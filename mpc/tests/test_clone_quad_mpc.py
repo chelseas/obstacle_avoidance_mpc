@@ -150,8 +150,8 @@ def simulate_and_plot(policy, savename="nn_policy.png", n_steps=20):
     # -------------------------------------------
     ys = np.linspace(-0.25, 0.25, 3)
     xs = np.linspace(-5.25, -4.75, 3)
-    vxs = np.linspace(0.96, 0.98, 3)
-    vys = np.linspace(-0.5, 0.5, 3)
+    vxs = np.linspace(0.95, 0.98, 3)
+    vys = np.linspace(-0.01, 0.01, 3)
     x0s = []
     for y in ys:
         for x in xs:
@@ -235,18 +235,18 @@ def save_to_onnx(policy, save_path):
 
 
 if __name__ == "__main__":
-    suffix = "hackathon_split_4"
-    # data_path = 'mpc/tests/data/quad_data_'+suffix
-    # generate_quad_data(int(1e6), data_path)
-    model_save_path = "mpc/tests/data/quad_policy_"+suffix
-    model_load_path = model_save_path+".pth"
+    suffix = "hackathon_split_5"
+    data_path = 'mpc/tests/data/quad_data_'+suffix
+    # generate_quad_data(int(1e7), data_path)
+    model_save_path = "mpc/tests/data/quad_policy_"+suffix+"_take_2"
+    # model_load_path = model_save_path+".pth"
     policy = clone_quad_mpc(model_save_path+'.pth', 
                             hidden_layer_width=16, 
                             hidden_layers=2, 
-                            lambd=1e-10, 
-                            train=False, 
-                            epochs=50)
-                            # data_path=data_path) #, 
+                            lambd=1e-9, 
+                            train=True, 
+                            epochs=50,
+                            data_path=data_path) #, 
                             # load_from_file=model_load_path) # data_path='mpc/tests/data/quad_mpc_data', n_pts=1e5
-    # save_to_onnx(policy, model_save_path+".onnx")
+    save_to_onnx(policy, model_save_path+".onnx")
     simulate_and_plot(policy, savename="nn_policy_"+suffix+".png", n_steps=20)
