@@ -177,6 +177,11 @@ class PolicyCloningModel(torch.nn.Module):
             save_path: path to save the file (if none, will not save the model)
         """
 
+        # check cuda status
+        print("torch.cuda.is_available() ", torch.cuda.is_available())
+        print("torch.cuda.device_count() ", torch.cuda.device_count())
+        print("torch.cuda.current_device() ", torch.cuda.current_device())
+
         if data_path is not None:
             # load data in chunks
             # fnames_xtrain = glob.glob(data_path + '_examples_[0-9]*.pt')
@@ -216,6 +221,8 @@ class PolicyCloningModel(torch.nn.Module):
         mse_loss_fn = torch.nn.MSELoss(reduction="mean")
         optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
 
+        t1 = time.time()
+
         # Optimize in mini-batches
         for epoch in range(n_epochs):
             permutation = torch.randperm(n_pts)
@@ -241,7 +248,9 @@ class PolicyCloningModel(torch.nn.Module):
 
                 loss_accumulated += loss.detach()
 
-            print(f"Epoch {epoch}: loss: {loss_accumulated / (n_pts / batch_size)}, L1 norm of weights: {l1_norm}")
+            print(f"Epoch {epoch}: loss: {loss_accumulated / (n_pts / batch_size)}, L1 norm of weights: {l1_norm}") 
 
         if save_path is not None:
             self.save_to_file(save_path)
+
+        print("total training time: ", (time.time() - t1)/60/60, " hours")
